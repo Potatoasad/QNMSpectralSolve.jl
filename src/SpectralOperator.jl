@@ -1,10 +1,12 @@
 abstract type SpectralOperator end
 
-struct WaveEquationHyperboloidal{T1<:Function,T2<:Function,T3<:Function,T4<:Function} <: SpectralOperator
-    w::T1
-    p::T2
-    qℓ::T3
-    γ::T4
+struct WaveEquationHyperboloidal{w1<:Function,p1<:Function,qℓ1<:Function,γ1<:Function,∂ₓp1<:Function,∂ₓγ1<:Function} <: SpectralOperator
+    w::w1
+    p::p1
+    qℓ::qℓ1
+    γ::γ1
+    ∂ₓp::∂ₓp1
+    ∂ₓγ::∂ₓγ1
     x0::Float64
     x1::Float64
 end
@@ -12,8 +14,8 @@ end
 """
     Defaults the compactified coordinate to be from -1 to 1
 """
-function WaveEquationHyperboloidal(a::Function,b::Function,c::Function,d::Function; x0 = -1.0, x1 = 1.0)
-    WaveEquationHyperboloidal(a,b,c,d,x0,x1)
+function WaveEquationHyperboloidal(a::Function,b::Function,c::Function,d::Function,e::Function,f::Function; x0 = -1.0, x1 = 1.0)
+    WaveEquationHyperboloidal(a,b,c,d,e,f,x0,x1)
 end
 
 ToChebyLine(t,x0,x1) = 2*(t-x0)/(x1-x0) - 1
@@ -37,14 +39,15 @@ end
 """
 function L1_matrix(L::WaveEquationHyperboloidal, N::Integer)
     #Save the functions to prevent repetitive accessing of functions from inside L
-    w = L.w; p = L.p; qℓ = L.qℓ;
+    w = L.w; p = L.p; qℓ = L.qℓ; ∂ₓp = L.∂ₓp
 
     #Transform functions to live on the standard Chebyshev [-1,1]
     x0 = L.x0; x1 = L.x1;
+    #=
     p_cheby = ChebyshevT(p,Int64(N); x0=x0, x1=x1)
     ∂ₓp_cheby = ∂ₓ(p_cheby)
     ∂ₓp = (x -> ∂ₓp_cheby(x))
-
+    =#
     #Define matrices that will be used to make the L1_matrix
     w⁻¹  =  Diagonal(x -> 1/w(x),N,x0,x1)
     pₘ   =  Diagonal(p,N,x0,x1);
@@ -62,13 +65,13 @@ end
 """
 function L2_matrix(L::WaveEquationHyperboloidal, N::Integer)
     #Save the functions to prevent repetitive accessing of functions from inside L
-    w = L.w; γ = L.γ;
+    w = L.w; γ = L.γ; ∂ₓγ = L.∂ₓγ
 
     #Transform functions to live on the standard Chebyshev [-1,1]
     x0 = L.x0; x1 = L.x1;
-    γ_cheby = ChebyshevT(γ,Int64(N); x0=x0, x1=x1)
+    #=γ_cheby = ChebyshevT(γ,Int64(N); x0=x0, x1=x1)
     ∂ₓγ_cheby = ∂ₓ(γ_cheby)
-    ∂ₓγ = (x -> ∂ₓγ_cheby(x))
+    ∂ₓγ = (x -> ∂ₓγ_cheby(x))=#
 
     #Define matrices that will be used to make the L2_matrix
     w⁻¹  =  Diagonal(x -> 1/w(x),N,x0,x1)
@@ -76,10 +79,6 @@ function L2_matrix(L::WaveEquationHyperboloidal, N::Integer)
     ∂ₓγₘ =  Diagonal(∂ₓγ,N,x0,x1);
     ∂ₓₘ  =  (2/(x1-x0))*[DerivativeFunc(i,j,N) for i ∈ 0:N, j ∈ 0:N]
 
-    #println(w⁻¹)
-    #println(γₘ)
-    #println(∂ₓγₘ)
-    #println(∂ₓₘ)
     #Construct the L2 matrix
     w⁻¹*(2*γₘ*∂ₓₘ + ∂ₓγₘ)
 end
