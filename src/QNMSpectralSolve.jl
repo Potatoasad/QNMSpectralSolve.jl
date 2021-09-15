@@ -1,5 +1,8 @@
 module QNMSpectralSolve
 
-greet() = print("Hello World!")
+using LinearAlgebra
+
+include("Chebyshev.jl")
+include("SpectralOperator.jl")
 
 end # module
